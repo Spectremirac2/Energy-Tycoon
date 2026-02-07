@@ -8,6 +8,11 @@ import { BuildPanel } from "./components/ui/BuildPanel";
 import { BattlePanel } from "./components/ui/BattlePanel";
 import { CompanyPanel } from "./components/ui/CompanyPanel";
 import { EconomicPanel } from "./components/ui/EconomicPanel";
+import { NotificationToast } from "./components/ui/NotificationToast";
+import { TechPanel } from "./components/ui/TechPanel";
+import { TutorialOverlay } from "./components/ui/TutorialOverlay";
+import { SettingsPanel } from "./components/ui/SettingsPanel";
+import { ActiveEventsBar } from "./components/ui/ActiveEventsBar";
 
 function SoundManager() {
   const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
@@ -69,6 +74,21 @@ function LoadingScreen() {
 function App() {
   const { phase } = useGameState();
 
+  useEffect(() => {
+    /** Escape tuşuyla tüm panelleri kapat */
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        try {
+          useGameState.getState().closeAllPanels();
+        } catch (err) {
+          console.error("Panel kapatma hatası:", err);
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }}>
       <SoundManager />
@@ -84,7 +104,12 @@ function App() {
           <BuildPanel />
           <CompanyPanel />
           <EconomicPanel />
+          <TechPanel />
+          <SettingsPanel />
           <BattlePanel />
+          <TutorialOverlay />
+          <ActiveEventsBar />
+          <NotificationToast />
         </>
       )}
 

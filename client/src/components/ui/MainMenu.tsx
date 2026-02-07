@@ -1,7 +1,8 @@
 import { useGameState } from "@/lib/stores/useGameState";
 
 export function MainMenu() {
-  const { startGame } = useGameState();
+  const { startGame, loadGame, hasSave } = useGameState();
+  const savedGameExists = hasSave();
 
   return (
     <div
@@ -96,33 +97,63 @@ export function MainMenu() {
           ))}
         </div>
 
-        <button
-          onClick={startGame}
-          style={{
-            padding: "16px 64px",
-            fontSize: "20px",
-            fontWeight: 700,
-            color: "#0F2027",
-            background: "linear-gradient(135deg, #FFB800, #E67E22)",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            letterSpacing: "3px",
-            textTransform: "uppercase",
-            boxShadow: "0 0 30px rgba(255,184,0,0.4), 0 4px 15px rgba(0,0,0,0.3)",
-            transition: "all 0.3s ease",
-          }}
-          onMouseEnter={(e) => {
-            (e.target as HTMLElement).style.transform = "scale(1.05)";
-            (e.target as HTMLElement).style.boxShadow = "0 0 50px rgba(255,184,0,0.6), 0 6px 20px rgba(0,0,0,0.4)";
-          }}
-          onMouseLeave={(e) => {
-            (e.target as HTMLElement).style.transform = "scale(1)";
-            (e.target as HTMLElement).style.boxShadow = "0 0 30px rgba(255,184,0,0.4), 0 4px 15px rgba(0,0,0,0.3)";
-          }}
-        >
-          Oyuna Başla
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "center" }}>
+          <button
+            onClick={startGame}
+            style={{
+              padding: "16px 64px",
+              fontSize: "20px",
+              fontWeight: 700,
+              color: "#0F2027",
+              background: "linear-gradient(135deg, #FFB800, #E67E22)",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              letterSpacing: "3px",
+              textTransform: "uppercase",
+              boxShadow: "0 0 30px rgba(255,184,0,0.4), 0 4px 15px rgba(0,0,0,0.3)",
+              transition: "all 0.3s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.target as HTMLElement).style.transform = "scale(1.05)";
+              (e.target as HTMLElement).style.boxShadow = "0 0 50px rgba(255,184,0,0.6), 0 6px 20px rgba(0,0,0,0.4)";
+            }}
+            onMouseLeave={(e) => {
+              (e.target as HTMLElement).style.transform = "scale(1)";
+              (e.target as HTMLElement).style.boxShadow = "0 0 30px rgba(255,184,0,0.4), 0 4px 15px rgba(0,0,0,0.3)";
+            }}
+          >
+            Yeni Oyun
+          </button>
+
+          {savedGameExists && (
+            <button
+              onClick={() => { loadGame(); }}
+              style={{
+                padding: "12px 48px",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#e0e8f0",
+                background: "linear-gradient(135deg, rgba(26,95,122,0.8), rgba(46,204,113,0.6))",
+                border: "1px solid rgba(46,204,113,0.4)",
+                borderRadius: "8px",
+                cursor: "pointer",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                boxShadow: "0 0 20px rgba(46,204,113,0.2), 0 4px 10px rgba(0,0,0,0.3)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.target as HTMLElement).style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                (e.target as HTMLElement).style.transform = "scale(1)";
+              }}
+            >
+              📂 Kayıttan Devam Et
+            </button>
+          )}
+        </div>
 
         <div
           style={{

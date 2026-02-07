@@ -1,5 +1,6 @@
 import { useGameState } from "@/lib/stores/useGameState";
 import { useAudio } from "@/lib/stores/useAudio";
+import { DayNightIndicator } from "./DayNightIndicator";
 
 const panelStyle: React.CSSProperties = {
   background: "linear-gradient(135deg, rgba(15,32,39,0.92), rgba(26,95,122,0.85))",
@@ -17,6 +18,7 @@ export function GameHUD() {
     gold, energy, energyCapacity, goldPerSecond, energyPerSecond,
     buildings, employees, gamingCompanyLevel, gamingCompanyRevenue,
     toggleBuildPanel, toggleCompanyPanel, toggleEconomicPanel,
+    toggleTechPanel, toggleSettingsPanel,
     unlockedMines,
   } = useGameState();
   const { isMuted, toggleMute } = useAudio();
@@ -66,7 +68,8 @@ export function GameHUD() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "8px", pointerEvents: "auto" }}>
+        <div style={{ display: "flex", gap: "8px", alignItems: "flex-start", pointerEvents: "auto" }}>
+          <DayNightIndicator />
           <div style={{ ...panelStyle, textAlign: "center", minWidth: "80px" }}>
             <div style={{ fontSize: "10px", color: "#aaa", letterSpacing: "1px" }}>SEVIYE</div>
             <div style={{ fontSize: "11px", color: "#FFB800" }}>Şirket Lv.{gamingCompanyLevel}</div>
@@ -75,7 +78,7 @@ export function GameHUD() {
             </div>
           </div>
           <button
-            onClick={toggleMute}
+            onClick={toggleSettingsPanel}
             style={{
               ...panelStyle,
               cursor: "pointer",
@@ -88,7 +91,7 @@ export function GameHUD() {
               padding: 0,
             }}
           >
-            {isMuted ? "🔇" : "🔊"}
+            ⚙️
           </button>
         </div>
       </div>
@@ -97,6 +100,7 @@ export function GameHUD() {
         <ActionButton icon="🔨" label="İnşa Et" onClick={toggleBuildPanel} color="#1A5F7A" />
         <ActionButton icon="🎮" label="Şirket" onClick={toggleCompanyPanel} color="#2ECC71" />
         <ActionButton icon="📊" label="Ekonomi" onClick={toggleEconomicPanel} color="#E67E22" />
+        <ActionButton icon="🔬" label="Teknoloji" onClick={toggleTechPanel} color="#9b59b6" />
       </div>
 
       <div style={{ position: "absolute", top: "12px", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }}>
