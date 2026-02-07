@@ -1,73 +1,97 @@
-import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect, useState } from "react";
-import { KeyboardControls } from "@react-three/drei";
-// import { useAudio } from "./lib/stores/useAudio";
-import "@fontsource/inter";
+import { Suspense, useEffect } from "react";
+import { useGameState } from "./lib/stores/useGameState";
+import { useAudio } from "./lib/stores/useAudio";
+import { MainMenu } from "./components/ui/MainMenu";
+import { GameWorld } from "./components/game/GameWorld";
+import { GameHUD } from "./components/ui/GameHUD";
+import { BuildPanel } from "./components/ui/BuildPanel";
+import { BattlePanel } from "./components/ui/BattlePanel";
+import { CompanyPanel } from "./components/ui/CompanyPanel";
+import { EconomicPanel } from "./components/ui/EconomicPanel";
 
-// Import our game components
+function SoundManager() {
+  const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
 
-// Define control keys for the game
-// const controls = [
-//   { name: "forward", keys: ["KeyW", "ArrowUp"] },
-//   { name: "backward", keys: ["KeyS", "ArrowDown"] },
-//   { name: "leftward", keys: ["KeyA", "ArrowLeft"] },
-//   { name: "rightward", keys: ["KeyD", "ArrowRight"] },
-//   { name: "punch", keys: ["KeyJ"] },
-//   { name: "kick", keys: ["KeyK"] },
-//   { name: "block", keys: ["KeyL"] },
-//   { name: "special", keys: ["Space"] },
-// ];
-
-// Main App component
-function App() {
-  //const { gamePhase } = useFighting();
-  const [showCanvas, setShowCanvas] = useState(false);
-
-  // Show the canvas once everything is loaded
   useEffect(() => {
-    setShowCanvas(true);
+    const bgMusic = new Audio("/sounds/background.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.2;
+    setBackgroundMusic(bgMusic);
+
+    const hit = new Audio("/sounds/hit.mp3");
+    hit.volume = 0.3;
+    setHitSound(hit);
+
+    const success = new Audio("/sounds/success.mp3");
+    success.volume = 0.4;
+    setSuccessSound(success);
   }, []);
 
+  return null;
+}
+
+function LoadingScreen() {
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}/>
-    // {showCanvas && (
-    //   <KeyboardControls map={controls}>
-    //     {gamePhase === 'menu' && <Menu />}
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "linear-gradient(135deg, #0F2027, #1A5F7A)",
+      zIndex: 200,
+      fontFamily: "'Rajdhani', sans-serif",
+    }}>
+      <div style={{ textAlign: "center" }}>
+        <div style={{
+          width: "60px",
+          height: "60px",
+          border: "3px solid rgba(255,184,0,0.2)",
+          borderTop: "3px solid #FFB800",
+          borderRadius: "50%",
+          animation: "spin 1s linear infinite",
+          margin: "0 auto 20px",
+        }} />
+        <div style={{ color: "#FFB800", fontSize: "18px", fontWeight: 600, letterSpacing: "2px" }}>
+          YÜKLENİYOR...
+        </div>
+      </div>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+}
 
-    //     {gamePhase === 'character_selection' && <CharacterSelection />}
+function App() {
+  const { phase } = useGameState();
 
-    //     {(gamePhase === 'fighting' || gamePhase === 'round_end' || gamePhase === 'match_end') && (
-    //       <>
-    //         <Canvas
-    //           shadows
-    //           camera={{
-    //             position: [0, 2, 8],
-    //             fov: 45,
-    //             near: 0.1,
-    //             far: 1000
-    //           }}
-    //           gl={{
-    //             antialias: true,
-    //             powerPreference: "default"
-    //           }}
-    //         >
-    //           <color attach="background" args={["#111111"]} />
+  return (
+    <div style={{ width: "100vw", height: "100vh", position: "relative", overflow: "hidden" }}>
+      <SoundManager />
 
-    //           {/* Lighting */}
-    //           <Lights />
+      {phase === "menu" && <MainMenu />}
 
-    //           <Suspense fallback={null}>
-    //           </Suspense>
-    //         </Canvas>
-    //         <GameUI />
-    //       </>
-    //     )}
+      {(phase === "playing" || phase === "battle") && (
+        <>
+          <Suspense fallback={<LoadingScreen />}>
+            <GameWorld />
+          </Suspense>
+          <GameHUD />
+          <BuildPanel />
+          <CompanyPanel />
+          <EconomicPanel />
+          <BattlePanel />
+        </>
+      )}
 
-    //     <ShortcutManager />
-    //     <SoundManager />
-    //   </KeyboardControls>
-    // )}
-    //</div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+      `}</style>
+    </div>
   );
 }
 

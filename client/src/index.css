@@ -5,15 +5,18 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased;
     margin: 0;
     padding: 0;
     overflow: hidden;
     width: 100vw;
     height: 100vh;
+    background: #0F2027;
+    color: #e0e8f0;
   }
 }
 
@@ -27,4 +30,25 @@ canvas {
   width: 100% !important;
   height: 100% !important;
   touch-action: none;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 32, 39, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 95, 122, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 184, 0, 0.5);
+}
+
+button {
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
 }
