@@ -360,6 +360,145 @@ export const DAY_PHASES = {
   night: { start: 0.8, end: 0.2, ambientColor: "#1a1a4e", intensity: 0.2 },
 } as const;
 
+/** ===== HARİTA KONFİGÜRASYONU ===== */
+export const MAP_CONFIG = {
+  /** Toplam harita boyutu (birim) */
+  SIZE: 200,
+  /** Oynanabilir alan sınırı (±) */
+  BOUNDS: 95,
+  /** Arka plan düzlem boyutu */
+  BG_SIZE: 400,
+  /** Bina yerleştirme grid boyutu */
+  GRID_SNAP: 3,
+  /** Bina minimum mesafe */
+  MIN_SPACING: 3,
+  /** Sis başlangıç mesafesi */
+  FOG_NEAR: 50,
+  /** Sis bitiş mesafesi */
+  FOG_FAR: 150,
+  /** Kamera far plane */
+  CAMERA_FAR: 400,
+  /** Gölge kamera boyutu */
+  SHADOW_SIZE: 80,
+  /** Ağaç sayısı */
+  TREE_COUNT: 200,
+  /** Kaya sayısı */
+  ROCK_COUNT: 80,
+  /** Ağaç dağılım yarıçapı */
+  TREE_RADIUS: 90,
+  /** Kaya dağılım yarıçapı */
+  ROCK_RADIUS: 85,
+  /** Texture tekrar sayısı */
+  TEXTURE_REPEAT: 40,
+} as const;
+
+/** Biome tanımları */
+export interface Biome {
+  id: string;
+  name: string;
+  color: string;
+  treeDensity: number;  // 0-1
+  rockDensity: number;  // 0-1
+  heightVariation: number;
+}
+
+export const BIOMES: Biome[] = [
+  { id: "grassland", name: "Çayırlık", color: "#2d5a1e", treeDensity: 0.4, rockDensity: 0.2, heightVariation: 0.1 },
+  { id: "desert", name: "Çöl", color: "#c2a645", treeDensity: 0.05, rockDensity: 0.5, heightVariation: 0.2 },
+  { id: "snow", name: "Karlık", color: "#d4e5f7", treeDensity: 0.2, rockDensity: 0.4, heightVariation: 0.3 },
+  { id: "forest", name: "Orman", color: "#1a4a12", treeDensity: 0.9, rockDensity: 0.3, heightVariation: 0.15 },
+  { id: "mountain", name: "Dağlık", color: "#5a5a5a", treeDensity: 0.1, rockDensity: 0.8, heightVariation: 0.5 },
+];
+
+/** Yeni maden lokasyonları (büyük harita için) */
+export const MINE_LOCATIONS = [
+  { id: "mine_1", position: [25, 0, -20] as [number, number, number], name: "Altın Dağı", difficulty: 1 },
+  { id: "mine_2", position: [-35, 0, 15] as [number, number, number], name: "Gizli Maden", difficulty: 2 },
+  { id: "mine_3", position: [40, 0, 35] as [number, number, number], name: "Kadim Ocak", difficulty: 3 },
+  { id: "mine_4", position: [-25, 0, -40] as [number, number, number], name: "Ejder Madeni", difficulty: 4 },
+  { id: "mine_5", position: [60, 0, -50] as [number, number, number], name: "Kristal Mağara", difficulty: 5 },
+  { id: "mine_6", position: [-55, 0, 55] as [number, number, number], name: "Karanlık Kuyu", difficulty: 6 },
+  { id: "mine_7", position: [70, 0, 60] as [number, number, number], name: "Volkan Madeni", difficulty: 7 },
+  { id: "mine_8", position: [-70, 0, -65] as [number, number, number], name: "Elmas Uçurumu", difficulty: 8 },
+];
+
+/** Yeni bina tipleri (nuclear, solar_farm, energy_trader, training_center) */
+export const NEW_BUILDING_COSTS: Record<string, number> = {
+  nuclear_plant: 5000,
+  solar_farm: 2000,
+  energy_trader: 1500,
+  training_center: 2500,
+  hydroelectric: 3000,
+  geothermal: 4000,
+};
+
+export const NEW_BUILDING_PRODUCTION: Record<string, { gold: number; energy: number }> = {
+  nuclear_plant: { gold: 0, energy: 100 },
+  solar_farm: { gold: 0, energy: 30 },
+  energy_trader: { gold: 25, energy: -20 },
+  training_center: { gold: -10, energy: -5 },
+  hydroelectric: { gold: 0, energy: 50 },
+  geothermal: { gold: 5, energy: 40 },
+};
+
+export const NEW_BUILDING_META: Record<string, {
+  name: string;
+  description: string;
+  icon: string;
+  prodText: string;
+  category: "energy" | "economy" | "special";
+  requiresTech?: string;
+}> = {
+  nuclear_plant: {
+    name: "Nükleer Santral",
+    description: "Devasa enerji üretimi, yüksek maliyet",
+    icon: "☢️",
+    prodText: "+100 Enerji/s",
+    category: "energy",
+    requiresTech: "fusion_reactor",
+  },
+  solar_farm: {
+    name: "Güneş Çiftliği",
+    description: "Büyük alan, yüksek güneş enerjisi",
+    icon: "🌅",
+    prodText: "+30 Enerji/s",
+    category: "energy",
+    requiresTech: "solar_efficiency",
+  },
+  energy_trader: {
+    name: "Enerji Borsası",
+    description: "Fazla enerjiyi altına çevirir",
+    icon: "📈",
+    prodText: "+25 Altın/s, -20 Enerji/s",
+    category: "economy",
+    requiresTech: "smart_grid",
+  },
+  training_center: {
+    name: "Eğitim Merkezi",
+    description: "Çalışan verimliliğini artırır",
+    icon: "🎓",
+    prodText: "+%25 Çalışan Verimi",
+    category: "special",
+    requiresTech: "ai_gaming",
+  },
+  hydroelectric: {
+    name: "Hidroelektrik Santral",
+    description: "Su gücüyle enerji üretir",
+    icon: "💧",
+    prodText: "+50 Enerji/s",
+    category: "energy",
+    requiresTech: "battery_tech",
+  },
+  geothermal: {
+    name: "Jeotermal Santral",
+    description: "Yer altı ısısından enerji ve altın",
+    icon: "🌋",
+    prodText: "+40 Enerji/s, +5 Altın/s",
+    category: "energy",
+    requiresTech: "mining_drill",
+  },
+};
+
 /** Save/Load key */
 export const SAVE_KEY = "energy_tycoon_save";
 export const SETTINGS_KEY = "energy_tycoon_settings";

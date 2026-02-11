@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
 import { useGameState } from "@/lib/stores/useGameState";
+import { MINE_LOCATIONS } from "@/lib/gameConfig";
 
 interface MineData {
   id: string;
@@ -10,13 +11,6 @@ interface MineData {
   name: string;
   difficulty: number;
 }
-
-const MINES: MineData[] = [
-  { id: "mine_1", position: [15, 0, -10], name: "Altın Dağı", difficulty: 1 },
-  { id: "mine_2", position: [-18, 0, 8], name: "Gizli Maden", difficulty: 2 },
-  { id: "mine_3", position: [20, 0, 15], name: "Kadim Ocak", difficulty: 3 },
-  { id: "mine_4", position: [-12, 0, -18], name: "Ejder Madeni", difficulty: 4 },
-];
 
 function NativeGuard({ offset, seed }: { offset: [number, number, number]; seed: number }) {
   const ref = useRef<THREE.Group>(null);
@@ -120,7 +114,7 @@ function MineMesh({ mine }: { mine: MineData }) {
 export function GoldMines() {
   return (
     <group>
-      {MINES.map((mine) => (
+      {MINE_LOCATIONS.map((mine) => (
         <MineMesh key={mine.id} mine={mine} />
       ))}
     </group>

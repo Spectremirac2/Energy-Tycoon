@@ -2,6 +2,7 @@ import { useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useGameState, BuildingType } from "@/lib/stores/useGameState";
+import { MAP_CONFIG } from "@/lib/gameConfig";
 
 const BUILDING_COLORS: Record<BuildingType, string> = {
   solar_panel: "#1A5F7A",
@@ -22,13 +23,14 @@ export function PlacementGrid() {
     e.stopPropagation();
 
     const point = e.point;
-    const snappedX = Math.round(point.x / 3) * 3;
-    const snappedZ = Math.round(point.z / 3) * 3;
+    const snap = MAP_CONFIG.GRID_SNAP;
+    const snappedX = Math.round(point.x / snap) * snap;
+    const snappedZ = Math.round(point.z / snap) * snap;
 
     const tooClose = buildings.some((b) => {
       const dx = b.position[0] - snappedX;
       const dz = b.position[2] - snappedZ;
-      return Math.sqrt(dx * dx + dz * dz) < 3;
+      return Math.sqrt(dx * dx + dz * dz) < MAP_CONFIG.MIN_SPACING;
     });
 
     setIsValid(!tooClose);
@@ -53,7 +55,7 @@ export function PlacementGrid() {
         onPointerMove={handlePointerMove}
         onClick={handleClick}
       >
-        <planeGeometry args={[100, 100]} />
+        <planeGeometry args={[MAP_CONFIG.SIZE, MAP_CONFIG.SIZE]} />
         <meshBasicMaterial visible={false} />
       </mesh>
 

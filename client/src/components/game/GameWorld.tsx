@@ -8,6 +8,7 @@ import { PlacementGrid } from "./PlacementGrid";
 import { BuildingMesh } from "./Buildings";
 import { Player } from "./Player";
 import { useGameState } from "@/lib/stores/useGameState";
+import { MAP_CONFIG } from "@/lib/gameConfig";
 
 const keyMap = [
   { name: "forward", keys: ["ArrowUp", "KeyW"] },
@@ -17,23 +18,24 @@ const keyMap = [
 ];
 
 function Lights() {
+  const shadowSize = MAP_CONFIG.SHADOW_SIZE;
   return (
     <>
       <ambientLight intensity={0.4} color="#b0c4de" />
       <directionalLight
-        position={[20, 30, 10]}
+        position={[30, 45, 15]}
         intensity={1.2}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-far={80}
-        shadow-camera-left={-40}
-        shadow-camera-right={40}
-        shadow-camera-top={40}
-        shadow-camera-bottom={-40}
+        shadow-camera-far={shadowSize * 2}
+        shadow-camera-left={-shadowSize}
+        shadow-camera-right={shadowSize}
+        shadow-camera-top={shadowSize}
+        shadow-camera-bottom={-shadowSize}
         color="#fff5e0"
       />
-      <directionalLight position={[-10, 15, -10]} intensity={0.3} color="#4a90d9" />
+      <directionalLight position={[-15, 20, -15]} intensity={0.3} color="#4a90d9" />
       <hemisphereLight args={["#87ceeb", "#2d5a1e", 0.3]} />
     </>
   );
@@ -54,7 +56,7 @@ function GameScene() {
     <>
       <Lights />
       <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
-      <fog attach="fog" args={["#0F2027", 30, 80]} />
+      <fog attach="fog" args={["#0F2027", MAP_CONFIG.FOG_NEAR, MAP_CONFIG.FOG_FAR]} />
 
       <Suspense fallback={null}>
         <Terrain />
@@ -77,10 +79,10 @@ export function GameWorld() {
       <Canvas
         shadows
         camera={{
-          position: [15, 20, 15],
+          position: [20, 25, 20],
           fov: 50,
           near: 0.1,
-          far: 200,
+          far: MAP_CONFIG.CAMERA_FAR,
         }}
         gl={{
           antialias: true,
