@@ -1,9 +1,10 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { useKeyboardControls, Text } from "@react-three/drei";
 import { MAP_CONFIG } from "@/lib/gameConfig";
 import { useGameState } from "@/lib/stores/useGameState";
+import { useJoystickStore } from "@/lib/stores/useJoystickStore";
 
 enum Controls {
   forward = "forward",
@@ -22,9 +23,10 @@ export function Player() {
   const [, getKeys] = useKeyboardControls<Controls>();
   const velocity = useRef(new THREE.Vector3());
   const setPlayerPosition = useGameState((s) => s.setPlayerPosition);
+  const joystickX = useJoystickStore((s) => s.moveX);
+  const joystickY = useJoystickStore((s) => s.moveY);
   const frameCounter = useRef(0);
   const BASE_SPEED = 12;
-  const SPRINT_MULTIPLIER = 2;
 
   useEffect(() => {
     console.log("[Player] Kontroller başlatıldı. Harita sınırı:", MAP_CONFIG.BOUNDS);
@@ -37,10 +39,17 @@ export function Player() {
       const keys = getKeys();
       const direction = new THREE.Vector3();
 
+      // Klavye girişi
       if (keys.forward) direction.z -= 1;
       if (keys.back) direction.z += 1;
       if (keys.left) direction.x -= 1;
       if (keys.right) direction.x += 1;
+
+      // Mobil joystick girişi (nipplejs)
+      if (Math.abs(joystickX) > 0.1 || Math.abs(joystickY) > 0.1) {
+        direction.x += joystickX;
+        direction.z += joystickY;
+      }
 
       const speed = BASE_SPEED;
 

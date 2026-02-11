@@ -14,6 +14,10 @@ import { TutorialOverlay } from "./components/ui/TutorialOverlay";
 import { SettingsPanel } from "./components/ui/SettingsPanel";
 import { ActiveEventsBar } from "./components/ui/ActiveEventsBar";
 import { Minimap } from "./components/ui/Minimap";
+import { RivalsPanel } from "./components/ui/RivalsPanel";
+import { StatsPanel } from "./components/ui/StatsPanel";
+import { VirtualJoystick } from "./components/ui/VirtualJoystick";
+import { useIsMobile } from "./hooks/useIsMobile";
 
 function SoundManager() {
   const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
@@ -74,6 +78,7 @@ function LoadingScreen() {
 
 function App() {
   const { phase } = useGameState();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     /** Escape tuşuyla tüm panelleri kapat */
@@ -111,6 +116,9 @@ function App() {
           <TutorialOverlay />
           <ActiveEventsBar />
           <Minimap />
+          <RivalsPanel />
+          <StatsPanel />
+          {isMobile && <VirtualJoystick />}
           <NotificationToast />
         </>
       )}

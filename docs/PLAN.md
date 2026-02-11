@@ -1,56 +1,112 @@
-# Cuhadar Enerji Simulator - Bağımsız Uygulama Dönüşüm Planı
+# Energy Tycoon - Gelişmiş Özellikler Planı
 
-## Amaç
-Projeyi Replit bağımlılıklarından arındırarak bağımsız, tek tıkla çalışır hale getirmek; Netlify üzerinden web deploy desteği sağlamak.
+## Genel Bakış
 
-## Yapılacaklar
+Bu plan, Energy Tycoon oyununa altı büyük özellik eklemeyi kapsar:
+1. **LOD (Level of Detail)** - Uzaktaki nesneler için basit geometri
+2. **Spatial Partitioning (Quadtree)** - O(log n) çarpışma kontrolü
+3. **Post-processing Efektleri** - Bloom, SSAO, renk grading
+4. **AI Rakip Sistemi** - Yapay zeka enerji şirketleri
+5. **İstatistik Grafikleri** - Gelir/üretim zaman çizelgesi
+6. **Mobil Dokunmatik Destek** - Joystick ve pinch-zoom
 
-### 1. Replit Dosyalarının Silinmesi
-- [x] `.replit` - Replit yapılandırma dosyası
-- [x] `replit.md` - Replit dokümantasyonu
-- [x] `.local/state/replit/` - Replit durum klasörü
+---
 
-### 2. Bağımlılık Temizliği
-- [x] `package.json` - `@replit/vite-plugin-runtime-error-modal` kaldırılacak
-- [x] `package.json` - proje adı `rest-express` -> `energy-tycoon` olarak değiştirildi
-- [x] `cross-env` eklendi (Windows uyumluluğu için)
+## 1. LOD (Level of Detail)
 
-### 3. Yapılandırma Düzenlemeleri
-- [x] `vite.config.ts` - `runtimeErrorOverlay` import ve kullanımı kaldırılacak
-- [x] `server/index.ts` - Replit firewall yorumları temizlendi
+### Yaklaşım
+- Drei `<Detailed>` bileşeni ile bina başına 3 seviye geometri
+- Mesafe eşikleri: 0-40 (detaylı), 40-80 (orta), 80+ (kutu)
+- `PerformanceMonitor` ile adaptif DPR
 
-### 4. Kod Taraması
-- [x] Tüm dosyalarda "replit" kelimesi taranacak
-- [x] Varsa diğer referanslar temizlenecek
-- [x] package-lock.json yeniden oluşturuldu
+### Dosya Değişiklikleri
+- `client/src/components/game/Buildings.tsx` → LOD wrapper
+- `client/src/components/game/GameWorld.tsx` → PerformanceMonitor
 
-### 5. Başlatma Scripti
-- [x] `npm run dev` ile geliştirme modu
-- [x] `npm run build` ile üretim derlemesi (server + client)
-- [x] `npm run build:client` ile sadece client derlemesi (Netlify için)
-- [x] `npm start` ile üretim sunucusu
+---
 
-### 6. Windows BAT Dosyası
-- [x] `start-game.bat` oluşturuldu
-- [x] Node.js kontrolü ve bağımlılık otomatik kurulumu
-- [x] Geliştirme sunucusunu başlatır (http://localhost:5000)
+## 2. Spatial Partitioning (Quadtree)
 
-### 7. Netlify Deploy Konfigürasyonu
-- [x] `netlify.toml` oluşturuldu
-- [x] SPA redirect kuralı (`/* -> /index.html`)
-- [x] Build komutu: `npm run build:client`
-- [x] Publish dizini: `dist/public`
+### Yaklaşım
+- Sıfır bağımlılık TypeScript quadtree implementasyonu
+- XZ düzleminde 2D bölümleme
+- Bina yerleştirme ve çarpışma kontrolü için kullanım
 
-## Deployment Rehberi
+### Dosya Değişiklikleri
+- `client/src/lib/Quadtree.ts` → Yeni quadtree sınıfı
+- `client/src/components/game/PlacementGrid.tsx` → Quadtree entegrasyonu
 
-### Yerel Çalıştırma (Windows)
-1. `start-game.bat` dosyasına çift tıklayın
-2. Tarayıcıda `http://localhost:5000` adresine gidin
+---
 
-### Netlify Deploy
-1. GitHub repo'yu Netlify'a bağlayın
-2. Build ayarları otomatik algılanacak (`netlify.toml`)
-3. Deploy tamamlandığında paylaşılabilir URL alırsınız
+## 3. Post-processing Efektleri
 
-## Sonuç
-Proje artık tamamen bağımsız, Windows'ta tek tıkla çalışır ve Netlify üzerinden herkesin erişebileceği şekilde deploy edilebilir durumda.
+### Yaklaşım
+- `@react-three/postprocessing` (zaten yüklü)
+- Bloom → Enerji binaları, altın madenler
+- Vignette → Sinematik atmosfer
+- ToneMapping → Renk grading
+- SSAO → Opsiyonel (ağır, sadece masaüstünde)
+
+### Dosya Değişiklikleri
+- `client/src/components/game/GameWorld.tsx` → EffectComposer ekleme
+
+---
+
+## 4. AI Rakip Sistemi
+
+### Yaklaşım
+- Utility-Based AI: Her eylem fayda puanı ile değerlendirilir
+- 3 rakip şirket, farklı kişilikler (agresif/dengeli/ihtiyatlı)
+- Pazar fiyatları üzerinde rekabet etkisi
+- Zorluk seviyesi oyuncunun performansına göre ayarlanır
+
+### Dosya Değişiklikleri
+- `client/src/lib/AIRival.ts` → AI motor sınıfı
+- `client/src/lib/stores/useGameState.tsx` → Rakip durumu
+- `client/src/components/ui/RivalsPanel.tsx` → Rakip bilgi paneli
+
+---
+
+## 5. İstatistik Grafikleri
+
+### Yaklaşım
+- Recharts (zaten yüklü) ile gelir/üretim zaman çizelgesi
+- Tick bazlı veri toplama, son 60 tick saklanır
+- ResponsiveContainer ile responsive grafikler
+
+### Dosya Değişiklikleri
+- `client/src/lib/stores/useGameState.tsx` → Tarihsel veri dizisi
+- `client/src/components/ui/StatsPanel.tsx` → Grafik paneli
+
+---
+
+## 6. Mobil Dokunmatik Destek
+
+### Yaklaşım
+- `nipplejs` ile sanal joystick (sol alt köşe)
+- Drei `MapControls` ile pinch-zoom desteği
+- `useIsMobile()` hook ile responsive UI
+- Dokunmatik yapı yerleştirme (tap vs drag ayrımı)
+
+### Yeni Bağımlılıklar
+- `nipplejs` (~10KB, 0 dep)
+
+### Dosya Değişiklikleri
+- `client/src/hooks/useIsMobile.ts` → Mobil tespit hook
+- `client/src/components/ui/VirtualJoystick.tsx` → Joystick bileşeni
+- `client/src/lib/stores/useJoystickStore.ts` → Joystick state
+- `client/src/components/game/Player.tsx` → Joystick girişi
+- `client/src/components/game/GameWorld.tsx` → MapControls
+- `client/src/App.tsx` → Joystick render
+
+---
+
+## Uygulama Sırası
+
+1. ✅ Post-processing (hızlı kazanım, görsel etki)
+2. ✅ LOD sistemi (performans temeli)
+3. ✅ Quadtree (yerleştirme optimizasyonu)
+4. ✅ İstatistik grafikleri (UI zenginliği)
+5. ✅ AI rakip sistemi (gameplay derinliği)
+6. ✅ Mobil dokunmatik destek (erişilebilirlik)
+7. ✅ Final build & test

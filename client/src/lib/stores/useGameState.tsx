@@ -19,6 +19,7 @@ import {
   MINE_LOCATIONS,
   type TechNode,
 } from "../gameConfig";
+import { type AIRival, DEFAULT_RIVALS, tickRival } from "../AIRival";
 
 export type GamePhase = "menu" | "playing" | "battle" | "paused";
 
@@ -107,6 +108,12 @@ export interface GameState {
   tutorialCompleted: boolean;
   playerPosition: [number, number, number];
 
+  // --- AI Rakipler & İstatistik ---
+  rivals: AIRival[];
+  showRivalsPanel: boolean;
+  showStatsPanel: boolean;
+  statsHistory: { tick: number; gold: number; energy: number; goldPerSec: number; energyPerSec: number }[];
+
   // --- Aksiyonlar ---
   setPhase: (phase: GamePhase) => void;
   startGame: () => void;
@@ -140,6 +147,8 @@ export interface GameState {
   nextTutorialStep: () => void;
   skipTutorial: () => void;
   setPlayerPosition: (pos: [number, number, number]) => void;
+  toggleRivalsPanel: () => void;
+  toggleStatsPanel: () => void;
   triggerRandomEvent: () => void;
   checkAchievements: () => string[];
   getEffectiveCost: (type: BuildingType) => number;
@@ -170,6 +179,8 @@ function extractSaveable(s: GameState) {
     totalPlayTime: s.totalPlayTime,
     tutorialCompleted: s.tutorialCompleted,
     dayTime: s.dayTime,
+    rivals: s.rivals,
+    statsHistory: s.statsHistory,
   };
 }
 
@@ -217,6 +228,10 @@ export const useGameState = create<GameState>()(
     tutorialStep: 0,
     tutorialCompleted: false,
     playerPosition: [0, 0, 0],
+    rivals: DEFAULT_RIVALS,
+    showRivalsPanel: false,
+    showStatsPanel: false,
+    statsHistory: [],
 
     // --- Faz yönetimi ---
     setPhase: (phase) => set({ phase }),
@@ -247,6 +262,10 @@ export const useGameState = create<GameState>()(
           tutorialStep: 1,
           tutorialCompleted: false,
           playerPosition: [0, 0, 0],
+          rivals: DEFAULT_RIVALS,
+          showRivalsPanel: false,
+          showStatsPanel: false,
+          statsHistory: [],
           showBuildPanel: false,
           showCompanyPanel: false,
           showEconomicPanel: false,
@@ -614,7 +633,7 @@ export const useGameState = create<GameState>()(
     })),
     closeAllPanels: () => set({
       showBuildPanel: false, showCompanyPanel: false, showEconomicPanel: false,
-      showTechPanel: false, showSettingsPanel: false,
+      showTechPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false,
     }),
 
     // --- Teknoloji ağacı ---
@@ -666,6 +685,28 @@ export const useGameState = create<GameState>()(
     skipTutorial: () => set({ tutorialStep: 0, tutorialCompleted: true }),
 
     setPlayerPosition: (pos) => set({ playerPosition: pos }),
+
+    toggleRivalsPanel: () =>
+      set((s) => ({
+        showRivalsPanel: !s.showRivalsPanel,
+        showBuildPanel: false,
+        showCompanyPanel: false,
+        showEconomicPanel: false,
+        showTechPanel: false,
+        showSettingsPanel: false,
+        showStatsPanel: false,
+      })),
+
+    toggleStatsPanel: () =>
+      set((s) => ({
+        showStatsPanel: !s.showStatsPanel,
+        showBuildPanel: false,
+        showCompanyPanel: false,
+        showEconomicPanel: false,
+        showTechPanel: false,
+        showSettingsPanel: false,
+        showRivalsPanel: false,
+      })),
 
     // --- Rastgele olaylar ---
     triggerRandomEvent: () => {
@@ -816,6 +857,26 @@ export const useGameState = create<GameState>()(
           setTimeout(() => get().saveGame(), 0);
         }
 
+        // --- AI Rakip tick ---
+        let updatedRivals = state.rivals;
+        try {
+          updatedRivals = state.rivals.map((r) =>
+            tickRival(r, state.gold, state.buildings.length)
+          );
+        } catch (rivalErr) {
+          console.error("[GameState] Rival tick hatası:", rivalErr);
+        }
+
+        // --- İstatistik veri toplama (son 120 tick) ---
+        const newStatsPoint = {
+          tick: now,
+          gold: state.gold,
+          energy: state.energy,
+          goldPerSec: goldIncome,
+          energyPerSec: energyIncome,
+        };
+        const newStatsHistory = [...state.statsHistory.slice(-119), newStatsPoint];
+
         set({
           gold: Math.max(0, state.gold + goldIncome * dt),
           energy: Math.max(0, Math.min(state.energyCapacity, state.energy + energyIncome * dt)),
@@ -829,6 +890,8 @@ export const useGameState = create<GameState>()(
           researchProgress: newResearchProgress,
           unlockedTechs: newUnlockedTechs,
           totalPlayTime: newPlayTime,
+          rivals: updatedRivals,
+          statsHistory: newStatsHistory,
         });
       } catch (err) {
         console.error("[GameState] tick error:", err);

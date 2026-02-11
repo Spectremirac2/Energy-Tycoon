@@ -18,7 +18,7 @@ export function GameHUD() {
     gold, energy, energyCapacity, goldPerSecond, energyPerSecond,
     buildings, employees, gamingCompanyLevel, gamingCompanyRevenue,
     toggleBuildPanel, toggleCompanyPanel, toggleEconomicPanel,
-    toggleTechPanel, toggleSettingsPanel,
+    toggleTechPanel, toggleSettingsPanel, toggleRivalsPanel, toggleStatsPanel,
     unlockedMines,
   } = useGameState();
   const { isMuted, toggleMute } = useAudio();
@@ -101,6 +101,8 @@ export function GameHUD() {
         <ActionButton icon="🎮" label="Şirket" onClick={toggleCompanyPanel} color="#2ECC71" />
         <ActionButton icon="📊" label="Ekonomi" onClick={toggleEconomicPanel} color="#E67E22" />
         <ActionButton icon="🔬" label="Teknoloji" onClick={toggleTechPanel} color="#9b59b6" />
+        <ActionButton icon="🏢" label="Rakipler" onClick={toggleRivalsPanel} color="#e74c3c" />
+        <ActionButton icon="📈" label="İstatistik" onClick={toggleStatsPanel} color="#3498db" />
       </div>
 
       <div style={{ position: "absolute", top: "12px", left: "50%", transform: "translateX(-50%)", pointerEvents: "none" }}>

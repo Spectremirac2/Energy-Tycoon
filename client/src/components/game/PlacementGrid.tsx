@@ -1,8 +1,8 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
 import { useGameState, BuildingType } from "@/lib/stores/useGameState";
 import { MAP_CONFIG } from "@/lib/gameConfig";
+import { Quadtree, createGameQuadtree } from "@/lib/Quadtree";
 
 const BUILDING_COLORS: Record<BuildingType, string> = {
   solar_panel: "#1A5F7A",
@@ -17,6 +17,18 @@ export function PlacementGrid() {
   const [hoverPos, setHoverPos] = useState<[number, number, number] | null>(null);
   const [isValid, setIsValid] = useState(true);
   const planeRef = useRef<THREE.Mesh>(null);
+  const qtRef = useRef<Quadtree>(createGameQuadtree(MAP_CONFIG.SIZE));
+
+  /** Quadtree'yi binalar değiştiğinde yeniden oluştur */
+  useEffect(() => {
+    try {
+      const qt = createGameQuadtree(MAP_CONFIG.SIZE);
+      buildings.forEach((b) => qt.insert({ id: b.id, x: b.position[0], z: b.position[2] }));
+      qtRef.current = qt;
+    } catch (e) {
+      console.error("[PlacementGrid] Quadtree güncelleme hatası:", e);
+    }
+  }, [buildings]);
 
   const handlePointerMove = useCallback((e: any) => {
     if (!placementMode) return;
@@ -27,13 +39,20 @@ export function PlacementGrid() {
     const snappedX = Math.round(point.x / snap) * snap;
     const snappedZ = Math.round(point.z / snap) * snap;
 
-    const tooClose = buildings.some((b) => {
-      const dx = b.position[0] - snappedX;
-      const dz = b.position[2] - snappedZ;
-      return Math.sqrt(dx * dx + dz * dz) < MAP_CONFIG.MIN_SPACING;
-    });
+    // Quadtree O(log n) çarpışma kontrolü
+    try {
+      const nearby = qtRef.current.queryRadius(snappedX, snappedZ, MAP_CONFIG.MIN_SPACING);
+      setIsValid(nearby.length === 0);
+    } catch {
+      // Quadtree hatası olursa fallback: O(n) kontrol
+      const tooClose = buildings.some((b) => {
+        const dx = b.position[0] - snappedX;
+        const dz = b.position[2] - snappedZ;
+        return Math.sqrt(dx * dx + dz * dz) < MAP_CONFIG.MIN_SPACING;
+      });
+      setIsValid(!tooClose);
+    }
 
-    setIsValid(!tooClose);
     setHoverPos([snappedX, 0, snappedZ]);
   }, [placementMode, buildings]);
 

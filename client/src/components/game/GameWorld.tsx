@@ -1,6 +1,13 @@
-import { Suspense, useEffect } from "react";
+/**
+ * Ana 3D sahne bileşeni.
+ * Post-processing efektleri: Bloom, Vignette, ToneMapping.
+ * PerformanceMonitor ile adaptif DPR.
+ */
+import { Suspense, useEffect, useState, useCallback } from "react";
 import { Canvas } from "@react-three/fiber";
-import { KeyboardControls, Stars } from "@react-three/drei";
+import { KeyboardControls, Stars, PerformanceMonitor } from "@react-three/drei";
+import { EffectComposer, Bloom, Vignette, ToneMapping } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
 import { Terrain } from "./Terrain";
 import { Environment } from "./Environment";
 import { GoldMines } from "./GoldMines";
@@ -41,13 +48,43 @@ function Lights() {
   );
 }
 
+/**
+ * @description Post-processing efektleri.
+ *   Bloom: Enerji binaları ve altın madenler için parıltı.
+ *   Vignette: Sinematik atmosfer.
+ *   ToneMapping: Renk grading (ACES Filmic).
+ */
+function PostEffects() {
+  try {
+    return (
+      <EffectComposer multisampling={0}>
+        <Bloom
+          intensity={0.4}
+          luminanceThreshold={0.8}
+          luminanceSmoothing={0.3}
+          mipmapBlur
+        />
+        <Vignette offset={0.3} darkness={0.6} />
+        <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+      </EffectComposer>
+    );
+  } catch (e) {
+    console.error("[PostEffects] Render hatası:", e);
+    return null;
+  }
+}
+
 function GameScene() {
-  const { buildings, tick, phase, placementMode } = useGameState();
+  const { buildings, tick, phase } = useGameState();
 
   useEffect(() => {
     if (phase !== "playing") return;
     const interval = setInterval(() => {
-      tick();
+      try {
+        tick();
+      } catch (e) {
+        console.error("[GameScene] tick hatası:", e);
+      }
     }, 500);
     return () => clearInterval(interval);
   }, [phase, tick]);
@@ -69,15 +106,29 @@ function GameScene() {
           <BuildingMesh key={building.id} building={building} />
         ))}
       </Suspense>
+
+      {/* Post-processing */}
+      <PostEffects />
     </>
   );
 }
 
 export function GameWorld() {
+  const [dpr, setDpr] = useState(1.5);
+
+  /** Performans düşerse DPR'yi azalt, yükselirse artır */
+  const handleIncline = useCallback(() => {
+    setDpr((prev) => Math.min(2, prev + 0.1));
+  }, []);
+  const handleDecline = useCallback(() => {
+    setDpr((prev) => Math.max(0.8, prev - 0.1));
+  }, []);
+
   return (
     <KeyboardControls map={keyMap}>
       <Canvas
         shadows
+        dpr={dpr}
         camera={{
           position: [20, 25, 20],
           fov: 50,
@@ -93,6 +144,12 @@ export function GameWorld() {
         style={{ width: "100%", height: "100%" }}
       >
         <color attach="background" args={["#0a1520"]} />
+        <PerformanceMonitor
+          onIncline={handleIncline}
+          onDecline={handleDecline}
+          flipflops={3}
+          onFallback={() => setDpr(0.8)}
+        />
         <GameScene />
       </Canvas>
     </KeyboardControls>

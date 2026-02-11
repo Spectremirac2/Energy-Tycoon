@@ -382,28 +382,74 @@ const BUILDING_COMPONENTS: Record<BuildingType, React.FC<BuildingMeshProps>> = {
   geothermal: Geothermal,
 };
 
-/** Mesafe bazlı culling ile performans optimizasyonu */
-const MAX_RENDER_DISTANCE = 120;
+/* ════════════════════════════════════════════════════════
+   LOD + MESAFE CULLING SİSTEMİ
+   Yakın: Detaylı model | Uzak: Sadece renkli kutu | Çok uzak: Gizle
+   ════════════════════════════════════════════════════════ */
 
+/** LOD mesafe eşikleri (kare cinsinden, Math.sqrt'den kaçın) */
+const LOD_NEAR_SQ = 40 * 40;       // 0-40: Tam detaylı
+const LOD_MID_SQ = 80 * 80;        // 40-80: Basit kutu
+const MAX_RENDER_SQ = 120 * 120;    // 80+: Gizle
+
+/** Bina tipi → renk haritası (LOD kutu renkleri) */
+const LOD_COLORS: Record<string, string> = {
+  solar_panel: "#1A5F7A",
+  wind_turbine: "#e0e0e0",
+  power_station: "#34495E",
+  gold_mine: "#8B6914",
+  gaming_office: "#2c3e50",
+  battery_storage: "#34495E",
+  research_lab: "#2c3e50",
+  nuclear_plant: "#4a4a5a",
+  solar_farm: "#1a3c6e",
+  energy_trader: "#2c5530",
+  training_center: "#34495e",
+  hydroelectric: "#78909c",
+  geothermal: "#795548",
+};
+
+/** Uzak mesafedeki LOD kutu modeli */
+function LodBox({ building }: { building: Building }) {
+  return (
+    <group position={building.position}>
+      <mesh castShadow>
+        <boxGeometry args={[1.5, 1.5, 1.5]} />
+        <meshStandardMaterial color={LOD_COLORS[building.type] ?? "#555"} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * @description Bina mesh bileşeni - LOD + mesafe culling entegreli.
+ *   0-40 birim: Tam detaylı 3D model
+ *   40-80 birim: Renkli basit kutu
+ *   80+ birim: Render yapma
+ */
 export function BuildingMesh({ building, onClick }: BuildingMeshProps) {
   const Component = BUILDING_COMPONENTS[building.type];
   const { camera } = useThree();
-  const [visible, setVisible] = useState(true);
+  const [lodLevel, setLodLevel] = useState<0 | 1 | 2>(0); // 0=detay, 1=kutu, 2=gizle
   const frameSkip = useRef(0);
 
   useFrame(() => {
     try {
       frameSkip.current += 1;
-      if (frameSkip.current % 15 !== 0) return; // Her 15 frame'de bir kontrol
+      if (frameSkip.current % 15 !== 0) return;
       const dx = camera.position.x - building.position[0];
       const dz = camera.position.z - building.position[2];
       const distSq = dx * dx + dz * dz;
-      setVisible(distSq < MAX_RENDER_DISTANCE * MAX_RENDER_DISTANCE);
+
+      if (distSq > MAX_RENDER_SQ) setLodLevel(2);
+      else if (distSq > LOD_MID_SQ) setLodLevel(1);
+      else setLodLevel(0);
     } catch {
       /* culling hatası sessizce geç */
     }
   });
 
-  if (!Component || !visible) return null;
+  if (lodLevel === 2 || !Component) return null;
+  if (lodLevel === 1) return <LodBox building={building} />;
   return <Component building={building} onClick={onClick} />;
 }
