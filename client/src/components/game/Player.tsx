@@ -25,6 +25,7 @@ export function Player() {
   const setPlayerPosition = useGameState((s) => s.setPlayerPosition);
   const joystickX = useJoystickStore((s) => s.moveX);
   const joystickY = useJoystickStore((s) => s.moveY);
+  const cameraZoom = useJoystickStore((s) => s.cameraZoom);
   const frameCounter = useRef(0);
   const BASE_SPEED = 12;
 
@@ -74,9 +75,10 @@ export function Player() {
         ref.current.rotation.y = THREE.MathUtils.lerp(ref.current.rotation.y, angle, 0.1);
       }
 
-      // Kamera takibi (büyük haritada daha geniş açı)
-      const camOffsetX = 20;
-      const camOffsetZ = 20;
+      // Kamera takibi - pinch-zoom ile mesafe ayarlanabilir
+      const camOffsetX = 20 * cameraZoom;
+      const camOffsetZ = 20 * cameraZoom;
+      const camHeight = 25 * cameraZoom;
       state.camera.position.x = THREE.MathUtils.lerp(
         state.camera.position.x,
         ref.current.position.x + camOffsetX,
@@ -87,7 +89,7 @@ export function Player() {
         ref.current.position.z + camOffsetZ,
         0.03
       );
-      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 25, 0.02);
+      state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, camHeight, 0.02);
       state.camera.lookAt(ref.current.position.x, 0, ref.current.position.z);
 
       // Minimap için pozisyonu güncelle (her 10 frame'de bir, performans)

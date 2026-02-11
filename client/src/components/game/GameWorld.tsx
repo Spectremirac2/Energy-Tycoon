@@ -2,8 +2,9 @@
  * Ana 3D sahne bileşeni.
  * Post-processing efektleri: Bloom, Vignette, ToneMapping.
  * PerformanceMonitor ile adaptif DPR.
+ * Mobil pinch-zoom desteği.
  */
-import { Suspense, useEffect, useState, useCallback } from "react";
+import { Suspense, useEffect, useState, useCallback, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { KeyboardControls, Stars, PerformanceMonitor } from "@react-three/drei";
 import { EffectComposer, Bloom, Vignette, ToneMapping } from "@react-three/postprocessing";
@@ -16,6 +17,7 @@ import { BuildingMesh } from "./Buildings";
 import { Player } from "./Player";
 import { useGameState } from "@/lib/stores/useGameState";
 import { MAP_CONFIG } from "@/lib/gameConfig";
+import { useJoystickStore } from "@/lib/stores/useJoystickStore";
 
 const keyMap = [
   { name: "forward", keys: ["ArrowUp", "KeyW"] },
@@ -113,6 +115,93 @@ function GameScene() {
   );
 }
 
+/**
+ * @description Pinch-zoom overlay - Canvas üzerine dokunmatik zoom kontrolü.
+ * İki parmak sıkıştırma/açma ile kamera mesafesini ayarlar.
+ * Masaüstünde fare tekerleği ile de çalışır.
+ */
+function PinchZoomOverlay() {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const lastDistRef = useRef<number | null>(null);
+  const { cameraZoom, setZoom } = useJoystickStore();
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+
+    /** İki parmak arası mesafe */
+    const getTouchDist = (e: TouchEvent): number => {
+      try {
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const dx = t0.clientX - t1.clientX;
+        const dy = t0.clientY - t1.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+      } catch {
+        return 0;
+      }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        lastDistRef.current = getTouchDist(e);
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 2 || lastDistRef.current === null) return;
+      try {
+        const newDist = getTouchDist(e);
+        const delta = (lastDistRef.current - newDist) * 0.005;
+        setZoom(cameraZoom + delta);
+        lastDistRef.current = newDist;
+      } catch {
+        /* sessizce geç */
+      }
+    };
+
+    const onTouchEnd = () => {
+      lastDistRef.current = null;
+    };
+
+    /** Masaüstü fare tekerleği ile zoom */
+    const onWheel = (e: WheelEvent) => {
+      try {
+        e.preventDefault();
+        const delta = e.deltaY * 0.001;
+        setZoom(cameraZoom + delta);
+      } catch {
+        /* sessizce geç */
+      }
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("wheel", onWheel);
+    };
+  }, [cameraZoom, setZoom]);
+
+  return (
+    <div
+      ref={canvasRef}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 1,
+        touchAction: "none",
+        pointerEvents: "auto",
+      }}
+    />
+  );
+}
+
 export function GameWorld() {
   const [dpr, setDpr] = useState(1.5);
 
@@ -126,32 +215,36 @@ export function GameWorld() {
 
   return (
     <KeyboardControls map={keyMap}>
-      <Canvas
-        shadows
-        dpr={dpr}
-        camera={{
-          position: [20, 25, 20],
-          fov: 50,
-          near: 0.1,
-          far: MAP_CONFIG.CAMERA_FAR,
-        }}
-        gl={{
-          antialias: true,
-          powerPreference: "default",
-          toneMapping: 3,
-          toneMappingExposure: 1.2,
-        }}
-        style={{ width: "100%", height: "100%" }}
-      >
-        <color attach="background" args={["#0a1520"]} />
-        <PerformanceMonitor
-          onIncline={handleIncline}
-          onDecline={handleDecline}
-          flipflops={3}
-          onFallback={() => setDpr(0.8)}
-        />
-        <GameScene />
-      </Canvas>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        <Canvas
+          shadows
+          dpr={dpr}
+          camera={{
+            position: [20, 25, 20],
+            fov: 50,
+            near: 0.1,
+            far: MAP_CONFIG.CAMERA_FAR,
+          }}
+          gl={{
+            antialias: true,
+            powerPreference: "default",
+            toneMapping: 3,
+            toneMappingExposure: 1.2,
+          }}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <color attach="background" args={["#0a1520"]} />
+          <PerformanceMonitor
+            onIncline={handleIncline}
+            onDecline={handleDecline}
+            flipflops={3}
+            onFallback={() => setDpr(0.8)}
+          />
+          <GameScene />
+        </Canvas>
+        {/* Pinch-zoom overlay: Canvas üzerinde dokunmatik/tekerlek zoom */}
+        <PinchZoomOverlay />
+      </div>
     </KeyboardControls>
   );
 }
