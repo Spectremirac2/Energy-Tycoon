@@ -157,7 +157,11 @@ function InstancedRocks() {
   );
 }
 
-/** Çimler (dekoratif, instanced) */
+/**
+ * Çim kümeleri (dekoratif, instanced).
+ * Küçük koni geometrisi ile doğal çim görünümü.
+ * Saydam düzlem yerine opak koni → "cam panel" artefaktını önler.
+ */
 function InstancedGrass() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const count = 300;
@@ -169,7 +173,7 @@ function InstancedGrass() {
       for (let i = 0; i < count; i++) {
         const x = (rand() - 0.5) * MAP_CONFIG.SIZE * 0.8;
         const z = (rand() - 0.5) * MAP_CONFIG.SIZE * 0.8;
-        items.push({ x, z, scale: 0.3 + rand() * 0.5, rot: rand() * Math.PI });
+        items.push({ x, z, scale: 0.15 + rand() * 0.25, rot: rand() * Math.PI });
       }
       return items;
     } catch (e) {
@@ -185,8 +189,8 @@ function InstancedGrass() {
 
       for (let i = 0; i < data.length; i++) {
         const { x, z, scale, rot } = data[i];
-        dummy.position.set(x, 0.1, z);
-        dummy.scale.set(scale, scale * 2, scale);
+        dummy.position.set(x, scale * 0.3, z);
+        dummy.scale.set(scale, scale, scale);
         dummy.rotation.set(0, rot, 0);
         dummy.updateMatrix();
         meshRef.current.setMatrixAt(i, dummy.matrix);
@@ -199,8 +203,8 @@ function InstancedGrass() {
 
   return (
     <instancedMesh ref={meshRef} args={[undefined, undefined, data.length]}>
-      <planeGeometry args={[0.3, 0.6]} />
-      <meshStandardMaterial color="#2a6b1a" side={THREE.DoubleSide} transparent opacity={0.7} />
+      <coneGeometry args={[0.25, 0.5, 4]} />
+      <meshStandardMaterial color="#2d7a1e" roughness={0.9} />
     </instancedMesh>
   );
 }
