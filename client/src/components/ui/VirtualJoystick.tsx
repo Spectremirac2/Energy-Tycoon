@@ -20,8 +20,9 @@ export function VirtualJoystick() {
       try {
         if (!containerRef.current) return;
 
-        // nipplejs'i dinamik import et
-        const nipplejs = await import("nipplejs");
+        // nipplejs'i dinamik import et (CJS modül → default fallback)
+        const mod = await import("nipplejs");
+        const nipplejs = mod.default ?? mod;
 
         manager = nipplejs.create({
           zone: containerRef.current,
