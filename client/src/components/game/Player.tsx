@@ -1,8 +1,9 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 import { useKeyboardControls, Text } from "@react-three/drei";
 import { MAP_CONFIG } from "@/lib/gameConfig";
+import { useGameState } from "@/lib/stores/useGameState";
 
 enum Controls {
   forward = "forward",
@@ -20,6 +21,8 @@ export function Player() {
   const ref = useRef<THREE.Group>(null);
   const [, getKeys] = useKeyboardControls<Controls>();
   const velocity = useRef(new THREE.Vector3());
+  const setPlayerPosition = useGameState((s) => s.setPlayerPosition);
+  const frameCounter = useRef(0);
   const BASE_SPEED = 12;
   const SPRINT_MULTIPLIER = 2;
 
@@ -77,6 +80,16 @@ export function Player() {
       );
       state.camera.position.y = THREE.MathUtils.lerp(state.camera.position.y, 25, 0.02);
       state.camera.lookAt(ref.current.position.x, 0, ref.current.position.z);
+
+      // Minimap için pozisyonu güncelle (her 10 frame'de bir, performans)
+      frameCounter.current += 1;
+      if (frameCounter.current % 10 === 0) {
+        setPlayerPosition([
+          ref.current.position.x,
+          ref.current.position.y,
+          ref.current.position.z,
+        ]);
+      }
     } catch (e) {
       console.error("[Player] Frame güncelleme hatası:", e);
     }

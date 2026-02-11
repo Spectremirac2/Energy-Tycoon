@@ -13,6 +13,10 @@ import {
   ACHIEVEMENTS,
   TECH_TREE,
   SAVE_KEY,
+  NEW_BUILDING_COSTS,
+  NEW_BUILDING_PRODUCTION,
+  NEW_BUILDING_META,
+  MINE_LOCATIONS,
   type TechNode,
 } from "../gameConfig";
 
@@ -25,7 +29,13 @@ export type BuildingType =
   | "gold_mine"
   | "gaming_office"
   | "battery_storage"
-  | "research_lab";
+  | "research_lab"
+  | "nuclear_plant"
+  | "solar_farm"
+  | "energy_trader"
+  | "training_center"
+  | "hydroelectric"
+  | "geothermal";
 
 export interface Building {
   id: string;
@@ -95,6 +105,7 @@ export interface GameState {
   selectedBuildingId: string | null;
   tutorialStep: number; // 0=kapalı, 1+=adım no
   tutorialCompleted: boolean;
+  playerPosition: [number, number, number];
 
   // --- Aksiyonlar ---
   setPhase: (phase: GamePhase) => void;
@@ -128,6 +139,7 @@ export interface GameState {
   cancelResearch: () => void;
   nextTutorialStep: () => void;
   skipTutorial: () => void;
+  setPlayerPosition: (pos: [number, number, number]) => void;
   triggerRandomEvent: () => void;
   checkAchievements: () => string[];
   getEffectiveCost: (type: BuildingType) => number;
@@ -204,6 +216,7 @@ export const useGameState = create<GameState>()(
     selectedBuildingId: null,
     tutorialStep: 0,
     tutorialCompleted: false,
+    playerPosition: [0, 0, 0],
 
     // --- Faz yönetimi ---
     setPhase: (phase) => set({ phase }),
@@ -233,6 +246,7 @@ export const useGameState = create<GameState>()(
           lastTick: Date.now(),
           tutorialStep: 1,
           tutorialCompleted: false,
+          playerPosition: [0, 0, 0],
           showBuildPanel: false,
           showCompanyPanel: false,
           showEconomicPanel: false,
@@ -346,12 +360,12 @@ export const useGameState = create<GameState>()(
     getEffectiveCost: (type) => {
       try {
         const { unlockedTechs } = get();
-        let cost = BUILDING_COSTS[type] ?? 100;
+        let cost = BUILDING_COSTS[type] ?? NEW_BUILDING_COSTS[type] ?? 100;
         const hasCostReduction = unlockedTechs.includes("cost_optimization");
         if (hasCostReduction) cost *= 0.8;
         return Math.floor(cost);
       } catch {
-        return BUILDING_COSTS[type] ?? 100;
+        return BUILDING_COSTS[type] ?? NEW_BUILDING_COSTS[type] ?? 100;
       }
     },
 
@@ -364,7 +378,7 @@ export const useGameState = create<GameState>()(
           if (!tech) continue;
           if (tech.effect.type === "production_boost") {
             if (tech.effect.target === type) boost *= tech.effect.value;
-            if (tech.effect.target === "all_energy" && ["solar_panel", "wind_turbine", "power_station"].includes(type)) {
+            if (tech.effect.target === "all_energy" && ["solar_panel", "wind_turbine", "power_station", "nuclear_plant", "solar_farm", "hydroelectric", "geothermal"].includes(type)) {
               boost *= tech.effect.value;
             }
           }
@@ -386,6 +400,10 @@ export const useGameState = create<GameState>()(
         if (type === "battery_storage" && !state.unlockedTechs.includes("battery_tech")) return;
         if (type === "research_lab" && !state.unlockedTechs.includes("research_facility")) return;
 
+        // Yeni bina tipleri için teknoloji kilidi
+        const meta = NEW_BUILDING_META[type];
+        if (meta?.requiresTech && !state.unlockedTechs.includes(meta.requiresTech)) return;
+
         const building: Building = {
           id: `building_${nextBuildingId++}`,
           type,
@@ -397,6 +415,8 @@ export const useGameState = create<GameState>()(
         let extraCapacity = 0;
         if (type === "power_station") extraCapacity = 50;
         if (type === "battery_storage") extraCapacity = 100;
+        if (type === "nuclear_plant") extraCapacity = 200;
+        if (type === "hydroelectric") extraCapacity = 100;
 
         set((s) => ({
           gold: s.gold - cost,
@@ -415,7 +435,8 @@ export const useGameState = create<GameState>()(
         const { buildings, gold } = get();
         const building = buildings.find((b) => b.id === id);
         if (!building) return;
-        const upgradeCost = (BUILDING_COSTS[building.type] ?? 100) * building.level;
+        const baseCost = BUILDING_COSTS[building.type] ?? NEW_BUILDING_COSTS[building.type] ?? 100;
+        const upgradeCost = baseCost * building.level;
         if (gold < upgradeCost) return;
 
         set((s) => ({
@@ -432,7 +453,8 @@ export const useGameState = create<GameState>()(
     removeBuilding: (id) => {
       try {
         const building = get().buildings.find((b) => b.id === id);
-        const refund = building ? Math.floor((BUILDING_COSTS[building.type] ?? 0) * 0.5) : 0;
+        const baseCost = building ? (BUILDING_COSTS[building.type] ?? NEW_BUILDING_COSTS[building.type] ?? 0) : 0;
+        const refund = Math.floor(baseCost * 0.5);
         set((s) => ({
           buildings: s.buildings.filter((b) => b.id !== id),
           gold: s.gold + refund,
@@ -643,6 +665,8 @@ export const useGameState = create<GameState>()(
 
     skipTutorial: () => set({ tutorialStep: 0, tutorialCompleted: true }),
 
+    setPlayerPosition: (pos) => set({ playerPosition: pos }),
+
     // --- Rastgele olaylar ---
     triggerRandomEvent: () => {
       try {
@@ -725,13 +749,20 @@ export const useGameState = create<GameState>()(
         let energyIncome = 0;
 
         for (const b of state.buildings) {
-          const prod = BUILDING_PRODUCTION[b.type];
+          const prod = BUILDING_PRODUCTION[b.type] ?? NEW_BUILDING_PRODUCTION[b.type];
           if (!prod) continue;
           const techBoost = state.getTechBoost(b.type);
           const eventBoost = eventMultipliers[b.type] ?? 1;
 
           goldIncome += prod.gold * b.production * b.level * techBoost * eventBoost * globalMultiplier;
           energyIncome += prod.energy * b.production * b.level * techBoost * eventBoost * globalMultiplier;
+        }
+
+        // Training center bonusu: çalışan verimliliğini artır
+        const trainingCenterCount = state.buildings.filter((b) => b.type === "training_center").length;
+        if (trainingCenterCount > 0) {
+          const trainingBoost = 1 + trainingCenterCount * 0.25;
+          goldIncome *= trainingBoost;
         }
 
         // Gece enerji penaltisi (solar paneller gece %20 verimli)

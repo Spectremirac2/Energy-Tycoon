@@ -13,6 +13,7 @@ import { TechPanel } from "./components/ui/TechPanel";
 import { TutorialOverlay } from "./components/ui/TutorialOverlay";
 import { SettingsPanel } from "./components/ui/SettingsPanel";
 import { ActiveEventsBar } from "./components/ui/ActiveEventsBar";
+import { Minimap } from "./components/ui/Minimap";
 
 function SoundManager() {
   const { setBackgroundMusic, setHitSound, setSuccessSound } = useAudio();
@@ -109,6 +110,7 @@ function App() {
           <BattlePanel />
           <TutorialOverlay />
           <ActiveEventsBar />
+          <Minimap />
           <NotificationToast />
         </>
       )}
