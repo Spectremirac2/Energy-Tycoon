@@ -4,9 +4,10 @@
  */
 import { useEffect, useRef } from "react";
 import { useJoystickStore } from "@/lib/stores/useJoystickStore";
+import nipplejs from "nipplejs";
 
 /**
- * @description nipplejs'i dinamik olarak yükler ve joystick oluşturur.
+ * @description Statik nipplejs import'u ile joystick oluşturur.
  */
 export function VirtualJoystick() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -16,44 +17,36 @@ export function VirtualJoystick() {
   useEffect(() => {
     let manager: any = null;
 
-    const init = async () => {
-      try {
-        if (!containerRef.current) return;
+    try {
+      if (!containerRef.current) return;
 
-        // nipplejs'i dinamik import et (CJS modül → default fallback)
-        const mod = await import("nipplejs");
-        const nipplejs = mod.default ?? mod;
+      manager = nipplejs.create({
+        zone: containerRef.current,
+        mode: "static",
+        position: { left: "60px", bottom: "60px" },
+        size: 100,
+        color: "rgba(255, 184, 0, 0.5)",
+        fadeTime: 200,
+        restOpacity: 0.6,
+      });
 
-        manager = nipplejs.create({
-          zone: containerRef.current,
-          mode: "static",
-          position: { left: "60px", bottom: "60px" },
-          size: 100,
-          color: "rgba(255, 184, 0, 0.5)",
-          fadeTime: 200,
-          restOpacity: 0.6,
-        });
+      joystickRef.current = manager;
 
-        joystickRef.current = manager;
+      manager.on("move", (_: any, data: any) => {
+        try {
+          if (!data?.vector) return;
+          setMove(data.vector.x, -data.vector.y); // Y ekseni ters
+        } catch {
+          /* sessiz */
+        }
+      });
 
-        manager.on("move", (_: any, data: any) => {
-          try {
-            if (!data?.vector) return;
-            setMove(data.vector.x, -data.vector.y); // Y ekseni ters
-          } catch {
-            /* sessiz */
-          }
-        });
-
-        manager.on("end", () => {
-          resetMove();
-        });
-      } catch (e) {
-        console.error("[VirtualJoystick] Başlatma hatası:", e);
-      }
-    };
-
-    init();
+      manager.on("end", () => {
+        resetMove();
+      });
+    } catch (e) {
+      console.debug("[VirtualJoystick] Başlatma hatası:", e);
+    }
 
     return () => {
       try {

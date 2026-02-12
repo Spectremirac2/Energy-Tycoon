@@ -17,6 +17,7 @@ import {
   NEW_BUILDING_PRODUCTION,
   NEW_BUILDING_META,
   MINE_LOCATIONS,
+  getRegionBonus,
   type TechNode,
 } from "../gameConfig";
 import { type AIRival, DEFAULT_RIVALS, tickRival } from "../AIRival";
@@ -112,6 +113,7 @@ export interface GameState {
   rivals: AIRival[];
   showRivalsPanel: boolean;
   showStatsPanel: boolean;
+  showTradePanel: boolean;
   statsHistory: { tick: number; gold: number; energy: number; goldPerSec: number; energyPerSec: number }[];
 
   // --- Aksiyonlar ---
@@ -121,6 +123,8 @@ export interface GameState {
   saveGame: () => void;
   deleteSave: () => void;
   hasSave: () => boolean;
+  setGold: (value: number) => void;
+  setEnergy: (value: number) => void;
   addGold: (amount: number) => void;
   spendGold: (amount: number) => boolean;
   addEnergy: (amount: number) => void;
@@ -149,6 +153,7 @@ export interface GameState {
   setPlayerPosition: (pos: [number, number, number]) => void;
   toggleRivalsPanel: () => void;
   toggleStatsPanel: () => void;
+  toggleTradePanel: () => void;
   triggerRandomEvent: () => void;
   checkAchievements: () => string[];
   getEffectiveCost: (type: BuildingType) => number;
@@ -231,6 +236,7 @@ export const useGameState = create<GameState>()(
     rivals: DEFAULT_RIVALS,
     showRivalsPanel: false,
     showStatsPanel: false,
+    showTradePanel: false,
     statsHistory: [],
 
     // --- Faz yönetimi ---
@@ -265,6 +271,7 @@ export const useGameState = create<GameState>()(
           rivals: DEFAULT_RIVALS,
           showRivalsPanel: false,
           showStatsPanel: false,
+          showTradePanel: false,
           statsHistory: [],
           showBuildPanel: false,
           showCompanyPanel: false,
@@ -362,6 +369,8 @@ export const useGameState = create<GameState>()(
     },
 
     // --- Kaynak yönetimi ---
+    setGold: (value) => set({ gold: Math.max(0, value) }),
+    setEnergy: (value) => set((s) => ({ energy: Math.max(0, Math.min(value, s.energyCapacity)) })),
     addGold: (amount) => set((s) => ({ gold: s.gold + amount })),
 
     spendGold: (amount) => {
@@ -613,27 +622,27 @@ export const useGameState = create<GameState>()(
     setPlacementMode: (mode) => set({ placementMode: mode }),
     toggleBuildPanel: () => set((s) => ({
       showBuildPanel: !s.showBuildPanel,
-      showCompanyPanel: false, showEconomicPanel: false, showTechPanel: false, showSettingsPanel: false,
+      showCompanyPanel: false, showEconomicPanel: false, showTechPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false, showTradePanel: false,
     })),
     toggleCompanyPanel: () => set((s) => ({
       showCompanyPanel: !s.showCompanyPanel,
-      showBuildPanel: false, showEconomicPanel: false, showTechPanel: false, showSettingsPanel: false,
+      showBuildPanel: false, showEconomicPanel: false, showTechPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false, showTradePanel: false,
     })),
     toggleEconomicPanel: () => set((s) => ({
       showEconomicPanel: !s.showEconomicPanel,
-      showBuildPanel: false, showCompanyPanel: false, showTechPanel: false, showSettingsPanel: false,
+      showBuildPanel: false, showCompanyPanel: false, showTechPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false, showTradePanel: false,
     })),
     toggleTechPanel: () => set((s) => ({
       showTechPanel: !s.showTechPanel,
-      showBuildPanel: false, showCompanyPanel: false, showEconomicPanel: false, showSettingsPanel: false,
+      showBuildPanel: false, showCompanyPanel: false, showEconomicPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false, showTradePanel: false,
     })),
     toggleSettingsPanel: () => set((s) => ({
       showSettingsPanel: !s.showSettingsPanel,
-      showBuildPanel: false, showCompanyPanel: false, showEconomicPanel: false, showTechPanel: false,
+      showBuildPanel: false, showCompanyPanel: false, showEconomicPanel: false, showTechPanel: false, showRivalsPanel: false, showStatsPanel: false, showTradePanel: false,
     })),
     closeAllPanels: () => set({
       showBuildPanel: false, showCompanyPanel: false, showEconomicPanel: false,
-      showTechPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false,
+      showTechPanel: false, showSettingsPanel: false, showRivalsPanel: false, showStatsPanel: false, showTradePanel: false,
     }),
 
     // --- Teknoloji ağacı ---
@@ -695,6 +704,7 @@ export const useGameState = create<GameState>()(
         showTechPanel: false,
         showSettingsPanel: false,
         showStatsPanel: false,
+        showTradePanel: false,
       })),
 
     toggleStatsPanel: () =>
@@ -706,6 +716,19 @@ export const useGameState = create<GameState>()(
         showTechPanel: false,
         showSettingsPanel: false,
         showRivalsPanel: false,
+        showTradePanel: false,
+      })),
+
+    toggleTradePanel: () =>
+      set((s) => ({
+        showTradePanel: !s.showTradePanel,
+        showBuildPanel: false,
+        showCompanyPanel: false,
+        showEconomicPanel: false,
+        showTechPanel: false,
+        showSettingsPanel: false,
+        showRivalsPanel: false,
+        showStatsPanel: false,
       })),
 
     // --- Rastgele olaylar ---
@@ -795,8 +818,11 @@ export const useGameState = create<GameState>()(
           const techBoost = state.getTechBoost(b.type);
           const eventBoost = eventMultipliers[b.type] ?? 1;
 
-          goldIncome += prod.gold * b.production * b.level * techBoost * eventBoost * globalMultiplier;
-          energyIncome += prod.energy * b.production * b.level * techBoost * eventBoost * globalMultiplier;
+          // Bölge bonusu hesapla (bina konumuna göre)
+          const regionBonus = getRegionBonus(b.x, b.z);
+
+          goldIncome += prod.gold * b.production * b.level * techBoost * eventBoost * globalMultiplier * regionBonus.goldMult;
+          energyIncome += prod.energy * b.production * b.level * techBoost * eventBoost * globalMultiplier * regionBonus.energyMult * regionBonus.prodMult;
         }
 
         // Training center bonusu: çalışan verimliliğini artır
@@ -824,8 +850,9 @@ export const useGameState = create<GameState>()(
           goldIncome += 5 * globalMultiplier;
         }
 
-        // Şirket geliri
-        const totalEmployeeSalary = state.employees.reduce((sum, e) => sum + e.salary, 0);
+        // Şirket geliri (oyuncu pozisyonuna göre bölge bonusu)
+        const playerRegionBonus = getRegionBonus(state.playerPosition[0], state.playerPosition[2]);
+        const totalEmployeeSalary = state.employees.reduce((sum, e) => sum + e.salary * playerRegionBonus.salaryMult, 0);
         const empBoost = eventMultipliers["employees"] ?? 1;
         const employeeProductivity = state.employees.reduce((sum, e) => sum + e.productivity * empBoost, 0);
         const companyRevenue = state.gamingCompanyLevel * employeeProductivity * 2 * globalMultiplier;

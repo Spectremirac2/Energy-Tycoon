@@ -15,6 +15,10 @@ import { GoldMines } from "./GoldMines";
 import { PlacementGrid } from "./PlacementGrid";
 import { BuildingMesh } from "./Buildings";
 import { Player } from "./Player";
+import { CityRegion } from "./CityRegion";
+import { FarmRegion } from "./FarmRegion";
+import { ForestRegion } from "./ForestRegion";
+import { Animals } from "./Animals";
 import { useGameState } from "@/lib/stores/useGameState";
 import { MAP_CONFIG } from "@/lib/gameConfig";
 import { useJoystickStore } from "@/lib/stores/useJoystickStore";
@@ -30,10 +34,12 @@ function Lights() {
   const shadowSize = MAP_CONFIG.SHADOW_SIZE;
   return (
     <>
-      <ambientLight intensity={0.4} color="#b0c4de" />
+      {/* Ortam ışığı – sahneyi genel olarak aydınlatır */}
+      <ambientLight intensity={0.7} color="#d4e4f5" />
+      {/* Ana güneş ışığı */}
       <directionalLight
         position={[30, 45, 15]}
-        intensity={1.2}
+        intensity={1.6}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
@@ -42,10 +48,12 @@ function Lights() {
         shadow-camera-right={shadowSize}
         shadow-camera-top={shadowSize}
         shadow-camera-bottom={-shadowSize}
-        color="#fff5e0"
+        color="#fff8e8"
       />
-      <directionalLight position={[-15, 20, -15]} intensity={0.3} color="#4a90d9" />
-      <hemisphereLight args={["#87ceeb", "#2d5a1e", 0.3]} />
+      {/* Dolgu ışığı – gölge tarafını yumuşatır */}
+      <directionalLight position={[-20, 25, -20]} intensity={0.5} color="#8ab4d9" />
+      {/* Gökyüzü-zemin gradyanı */}
+      <hemisphereLight args={["#87ceeb", "#3a6e28", 0.5]} />
     </>
   );
 }
@@ -61,12 +69,12 @@ function PostEffects() {
     return (
       <EffectComposer multisampling={0}>
         <Bloom
-          intensity={0.4}
-          luminanceThreshold={0.8}
-          luminanceSmoothing={0.3}
+          intensity={0.3}
+          luminanceThreshold={0.85}
+          luminanceSmoothing={0.4}
           mipmapBlur
         />
-        <Vignette offset={0.3} darkness={0.6} />
+        <Vignette offset={0.4} darkness={0.25} />
         <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
       </EffectComposer>
     );
@@ -95,7 +103,8 @@ function GameScene() {
     <>
       <Lights />
       <Stars radius={100} depth={50} count={2000} factor={4} saturation={0} fade speed={1} />
-      <fog attach="fog" args={["#0F2027", MAP_CONFIG.FOG_NEAR, MAP_CONFIG.FOG_FAR]} />
+      {/* Sis: zemin kenar rengiyle uyumlu açık yeşil, uzakta kaybolma efekti */}
+      <fog attach="fog" args={["#5a9a52", MAP_CONFIG.FOG_NEAR, MAP_CONFIG.FOG_FAR]} />
 
       <Suspense fallback={null}>
         <Terrain />
@@ -103,6 +112,14 @@ function GameScene() {
         <GoldMines />
         <PlacementGrid />
         <Player />
+
+        {/* Bölge bileşenleri */}
+        <CityRegion />
+        <FarmRegion />
+        <ForestRegion />
+
+        {/* Hayvanlar ve canlılar */}
+        <Animals />
 
         {buildings.map((building) => (
           <BuildingMesh key={building.id} building={building} />
@@ -233,7 +250,8 @@ export function GameWorld() {
           }}
           style={{ width: "100%", height: "100%" }}
         >
-          <color attach="background" args={["#0a1520"]} />
+          {/* Arka plan: sis rengiyle aynı – kenar geçişi görünmez */}
+          <color attach="background" args={["#5a9a52"]} />
           <PerformanceMonitor
             onIncline={handleIncline}
             onDecline={handleDecline}

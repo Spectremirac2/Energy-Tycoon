@@ -1,112 +1,72 @@
-# Energy Tycoon - Gelişmiş Özellikler Planı
+# Energy Tycoon - Büyük Güncelleme Planı: Canlı Dünya & Bölge Sistemi
 
-## Genel Bakış
-
-Bu plan, Energy Tycoon oyununa altı büyük özellik eklemeyi kapsar:
-1. **LOD (Level of Detail)** - Uzaktaki nesneler için basit geometri
-2. **Spatial Partitioning (Quadtree)** - O(log n) çarpışma kontrolü
-3. **Post-processing Efektleri** - Bloom, SSAO, renk grading
-4. **AI Rakip Sistemi** - Yapay zeka enerji şirketleri
-5. **İstatistik Grafikleri** - Gelir/üretim zaman çizelgesi
-6. **Mobil Dokunmatik Destek** - Joystick ve pinch-zoom
+## Özet
+Harita 200→400 birime büyütülecek. Ticaret Şehri, Çiftlik Kasaba ve Orman bölgeleri eklenecek.
+Hayvanlar, kuşlar ve böcekler ile dünya canlandırılacak. Bölge yakınlık bonusları ile mekanik derinlik artırılacak.
 
 ---
 
-## 1. LOD (Level of Detail)
+## 1. Harita Büyütme
+- [x] `MAP_CONFIG.SIZE` → 400
+- [x] `MAP_CONFIG.BOUNDS` → 190
+- [x] `MAP_CONFIG.BG_SIZE` → 800
+- [x] `MAP_CONFIG.FOG_FAR` → 250
+- [x] `MAP_CONFIG.CAMERA_FAR` → 600
+- [x] Ağaç/kaya sayısı ve dağılım yarıçapı artır
 
-### Yaklaşım
-- Drei `<Detailed>` bileşeni ile bina başına 3 seviye geometri
-- Mesafe eşikleri: 0-40 (detaylı), 40-80 (orta), 80+ (kutu)
-- `PerformanceMonitor` ile adaptif DPR
+## 2. Bölge Sistemi (REGIONS)
+Her bölge haritada sabit bir konumda, belirli yarıçapta tanımlanır.
 
-### Dosya Değişiklikleri
-- `client/src/components/game/Buildings.tsx` → LOD wrapper
-- `client/src/components/game/GameWorld.tsx` → PerformanceMonitor
+| Bölge | Merkez | Yarıçap | Açıklama |
+|-------|--------|---------|----------|
+| Ticaret Şehri | (80, 0, -70) | 35 | Binalar, NPC, ticaret |
+| Çiftlik Kasaba | (-75, 0, 65) | 30 | Tarla, ahır, pazar |
+| Orman | (-60, 0, -60) | 40 | Yoğun ağaç, hayvanlar |
+| Fabrika Bölgesi | (70, 0, 70) | 25 | Sanayi bonusu |
 
----
+## 3. Ticaret Şehri
+- Şehir binaları (3D): Belediye, Banka, Market, Depo, Konut blokları
+- Oyuncu şehire yaklaşınca interaksiyon paneli açılır
+- **Ticaret Mekaniği**: Enerji sat → Altın al (piyasa fiyatı ile)
+- **Banka**: Altın yatır → faiz kazanç
+- **Market**: Özel upgrade/buff satın al
+- Şirketi şehire yakın kurarsan: **+%30 gelir bonusu**
 
-## 2. Spatial Partitioning (Quadtree)
+## 4. Çiftlik Kasaba
+- Tarla, ahır, değirmen, pazar yeri 3D modelleri
+- **Gıda Üretimi**: Yeni kaynak türü → çalışan morali
+- **Hayvan Çiftliği**: Pasif gelir kaynağı
+- Şirketi çiftliğe yakın kurarsan: **-%20 çalışan maaşı**
 
-### Yaklaşım
-- Sıfır bağımlılık TypeScript quadtree implementasyonu
-- XZ düzleminde 2D bölümleme
-- Bina yerleştirme ve çarpışma kontrolü için kullanım
+## 5. Hayvanlar ve Canlılar
+- **Koyunlar** (InstancedMesh): Çiftlik yakınında, yavaş hareket
+- **İnekler** (InstancedMesh): Çiftlik yakınında, sabit
+- **Tavuklar** (InstancedMesh): Çiftlik yakınında, hızlı hareket
+- **Kuşlar** (InstancedMesh): Hava, sinüs dalga uçuş
+- **Kelebekler** (InstancedMesh): Çiçek alanlarında, rastgele uçuş
+- **Geyikler** (InstancedMesh): Orman bölgesinde
 
-### Dosya Değişiklikleri
-- `client/src/lib/Quadtree.ts` → Yeni quadtree sınıfı
-- `client/src/components/game/PlacementGrid.tsx` → Quadtree entegrasyonu
+## 6. Bölge Bonusları
+- Her binanın konumu kontrol edilir → en yakın bölgeye göre bonus
+- Şehir yakını: +%30 Altın üretimi
+- Çiftlik yakını: -%20 Çalışan maaşı
+- Orman yakını: +%20 Enerji üretimi (doğal kaynak)
+- Fabrika yakını: +%50 Üretim hızı
 
----
+## 7. Teknik Detaylar
+- Tüm hayvanlar InstancedMesh ile tek draw call
+- Basit CPU animasyonu (pozisyon güncellemesi her frame)
+- Bölge 3D modelleri basit geometrilerden oluşur (box, cylinder, cone)
+- Bölge tespit sistemi: Mesafe hesaplama ile O(1)
+- Terrain doku tekrarı büyük haritaya göre ölçeklenir
 
-## 3. Post-processing Efektleri
-
-### Yaklaşım
-- `@react-three/postprocessing` (zaten yüklü)
-- Bloom → Enerji binaları, altın madenler
-- Vignette → Sinematik atmosfer
-- ToneMapping → Renk grading
-- SSAO → Opsiyonel (ağır, sadece masaüstünde)
-
-### Dosya Değişiklikleri
-- `client/src/components/game/GameWorld.tsx` → EffectComposer ekleme
-
----
-
-## 4. AI Rakip Sistemi
-
-### Yaklaşım
-- Utility-Based AI: Her eylem fayda puanı ile değerlendirilir
-- 3 rakip şirket, farklı kişilikler (agresif/dengeli/ihtiyatlı)
-- Pazar fiyatları üzerinde rekabet etkisi
-- Zorluk seviyesi oyuncunun performansına göre ayarlanır
-
-### Dosya Değişiklikleri
-- `client/src/lib/AIRival.ts` → AI motor sınıfı
-- `client/src/lib/stores/useGameState.tsx` → Rakip durumu
-- `client/src/components/ui/RivalsPanel.tsx` → Rakip bilgi paneli
-
----
-
-## 5. İstatistik Grafikleri
-
-### Yaklaşım
-- Recharts (zaten yüklü) ile gelir/üretim zaman çizelgesi
-- Tick bazlı veri toplama, son 60 tick saklanır
-- ResponsiveContainer ile responsive grafikler
-
-### Dosya Değişiklikleri
-- `client/src/lib/stores/useGameState.tsx` → Tarihsel veri dizisi
-- `client/src/components/ui/StatsPanel.tsx` → Grafik paneli
+## 8. Yeni Dosyalar
+- `client/src/lib/regions.ts` - Bölge tanımları ve yardımcı fonksiyonlar
+- `client/src/components/game/Animals.tsx` - Hayvan bileşenleri
+- `client/src/components/game/CityRegion.tsx` - Şehir 3D binalar
+- `client/src/components/game/FarmRegion.tsx` - Çiftlik 3D binalar
+- `client/src/components/game/ForestRegion.tsx` - Orman yoğunlaştırma
+- `client/src/components/ui/TradePanel.tsx` - Ticaret UI
 
 ---
-
-## 6. Mobil Dokunmatik Destek
-
-### Yaklaşım
-- `nipplejs` ile sanal joystick (sol alt köşe)
-- Drei `MapControls` ile pinch-zoom desteği
-- `useIsMobile()` hook ile responsive UI
-- Dokunmatik yapı yerleştirme (tap vs drag ayrımı)
-
-### Yeni Bağımlılıklar
-- `nipplejs` (~10KB, 0 dep)
-
-### Dosya Değişiklikleri
-- `client/src/hooks/useIsMobile.ts` → Mobil tespit hook
-- `client/src/components/ui/VirtualJoystick.tsx` → Joystick bileşeni
-- `client/src/lib/stores/useJoystickStore.ts` → Joystick state
-- `client/src/components/game/Player.tsx` → Joystick girişi
-- `client/src/components/game/GameWorld.tsx` → MapControls
-- `client/src/App.tsx` → Joystick render
-
----
-
-## Uygulama Sırası
-
-1. ✅ Post-processing (hızlı kazanım, görsel etki)
-2. ✅ LOD sistemi (performans temeli)
-3. ✅ Quadtree (yerleştirme optimizasyonu)
-4. ✅ İstatistik grafikleri (UI zenginliği)
-5. ✅ AI rakip sistemi (gameplay derinliği)
-6. ✅ Mobil dokunmatik destek (erişilebilirlik)
-7. ✅ Final build & test
+*Plan tarihi: 2026-02-07*

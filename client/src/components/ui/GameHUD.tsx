@@ -26,7 +26,7 @@ export function GameHUD() {
     gold, energy, energyCapacity, goldPerSecond, energyPerSecond,
     buildings, employees, gamingCompanyLevel, gamingCompanyRevenue,
     toggleBuildPanel, toggleCompanyPanel, toggleEconomicPanel,
-    toggleTechPanel, toggleSettingsPanel, toggleRivalsPanel, toggleStatsPanel,
+    toggleTechPanel, toggleSettingsPanel, toggleRivalsPanel, toggleStatsPanel, toggleTradePanel,
     unlockedMines,
   } = useGameState();
   const { isMuted, toggleMute } = useAudio();
@@ -144,6 +144,7 @@ export function GameHUD() {
         <ActionButton icon="🔬" label="Tekno" onClick={toggleTechPanel} color="#9b59b6" compact={isMobile} />
         <ActionButton icon="🏢" label="Rakip" onClick={toggleRivalsPanel} color="#e74c3c" compact={isMobile} />
         <ActionButton icon="📈" label="İstat" onClick={toggleStatsPanel} color="#3498db" compact={isMobile} />
+        <ActionButton icon="🏪" label="Ticaret" onClick={toggleTradePanel} color="#f39c12" compact={isMobile} />
       </div>
 
       {/* Başlık - mobilde gizle */}

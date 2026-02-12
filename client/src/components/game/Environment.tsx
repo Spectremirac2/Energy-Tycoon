@@ -1,11 +1,12 @@
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { MAP_CONFIG } from "@/lib/gameConfig";
+import { MAP_CONFIG, REGIONS } from "@/lib/gameConfig";
 
 /**
- * Instanced rendering ile çevre elemanları (ağaç, kaya).
+ * Instanced rendering ile çevre elemanları (ağaç, kaya, çim).
  * Büyük haritada yüzlerce obje tek draw call ile çizilir.
+ * Bölge merkezlerine çakışmayı önler.
  */
 
 /** Deterministic PRNG */
@@ -17,17 +18,33 @@ function createRng(seed: number) {
   };
 }
 
-/** Ağaç pozisyonlarını oluştur */
+/** Koordinatın herhangi bir bölge içinde olup olmadığını kontrol et */
+function isInsideAnyRegion(x: number, z: number, padding = 5): boolean {
+  try {
+    for (const region of REGIONS) {
+      const dx = x - region.center[0];
+      const dz = z - region.center[2];
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < region.radius + padding) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/** Ağaç pozisyonlarını oluştur - bölge merkezlerinden kaçınır */
 function generateTreeData(count: number, radius: number, seed: number) {
   try {
     const rand = createRng(seed);
     const data: { position: THREE.Vector3; scale: number; rotation: number }[] = [];
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count * 2 && data.length < count; i++) {
       const x = (rand() - 0.5) * radius * 2;
       const z = (rand() - 0.5) * radius * 2;
       const dist = Math.sqrt(x * x + z * z);
-      if (dist > 12 && dist < radius) {
+      // Merkeze çok yakın olmayan ve bölge alanlarına girmeyen noktalar
+      if (dist > 12 && dist < radius && !isInsideAnyRegion(x, z)) {
         data.push({
           position: new THREE.Vector3(x, 0, z),
           scale: 0.5 + rand() * 1.0,
@@ -48,11 +65,11 @@ function generateRockData(count: number, radius: number, seed: number) {
     const rand = createRng(seed);
     const data: { position: THREE.Vector3; scale: number; rotation: number }[] = [];
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < count * 2 && data.length < count; i++) {
       const x = (rand() - 0.5) * radius * 2;
       const z = (rand() - 0.5) * radius * 2;
       const dist = Math.sqrt(x * x + z * z);
-      if (dist > 8 && dist < radius) {
+      if (dist > 8 && dist < radius && !isInsideAnyRegion(x, z, 3)) {
         data.push({
           position: new THREE.Vector3(x, 0, z),
           scale: 0.4 + rand() * 1.8,
@@ -170,10 +187,12 @@ function InstancedGrass() {
     try {
       const rand = createRng(999);
       const items: { x: number; z: number; scale: number; rot: number }[] = [];
-      for (let i = 0; i < count; i++) {
+      for (let i = 0; i < count * 2 && items.length < count; i++) {
         const x = (rand() - 0.5) * MAP_CONFIG.SIZE * 0.8;
         const z = (rand() - 0.5) * MAP_CONFIG.SIZE * 0.8;
-        items.push({ x, z, scale: 0.15 + rand() * 0.25, rot: rand() * Math.PI });
+        if (!isInsideAnyRegion(x, z, 2)) {
+          items.push({ x, z, scale: 0.15 + rand() * 0.25, rot: rand() * Math.PI });
+        }
       }
       return items;
     } catch (e) {

@@ -16,6 +16,7 @@ import { ActiveEventsBar } from "./components/ui/ActiveEventsBar";
 import { Minimap } from "./components/ui/Minimap";
 import { RivalsPanel } from "./components/ui/RivalsPanel";
 import { StatsPanel } from "./components/ui/StatsPanel";
+import { TradePanel } from "./components/ui/TradePanel";
 import { VirtualJoystick } from "./components/ui/VirtualJoystick";
 import { useIsMobile } from "./hooks/useIsMobile";
 
@@ -118,6 +119,7 @@ function App() {
           <Minimap />
           <RivalsPanel />
           <StatsPanel />
+          <TradePanel />
           {isMobile && <VirtualJoystick />}
           <NotificationToast />
         </>

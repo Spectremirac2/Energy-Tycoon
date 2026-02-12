@@ -363,33 +363,133 @@ export const DAY_PHASES = {
 /** ===== HARİTA KONFİGÜRASYONU ===== */
 export const MAP_CONFIG = {
   /** Toplam harita boyutu (birim) */
-  SIZE: 200,
+  SIZE: 400,
   /** Oynanabilir alan sınırı (±) */
-  BOUNDS: 95,
+  BOUNDS: 190,
   /** Arka plan düzlem boyutu */
-  BG_SIZE: 400,
+  BG_SIZE: 800,
   /** Bina yerleştirme grid boyutu */
   GRID_SNAP: 3,
   /** Bina minimum mesafe */
   MIN_SPACING: 3,
   /** Sis başlangıç mesafesi */
-  FOG_NEAR: 50,
+  FOG_NEAR: 80,
   /** Sis bitiş mesafesi */
-  FOG_FAR: 150,
+  FOG_FAR: 250,
   /** Kamera far plane */
-  CAMERA_FAR: 400,
+  CAMERA_FAR: 600,
   /** Gölge kamera boyutu */
-  SHADOW_SIZE: 80,
+  SHADOW_SIZE: 100,
   /** Ağaç sayısı */
-  TREE_COUNT: 200,
+  TREE_COUNT: 500,
   /** Kaya sayısı */
-  ROCK_COUNT: 80,
+  ROCK_COUNT: 200,
   /** Ağaç dağılım yarıçapı */
-  TREE_RADIUS: 90,
+  TREE_RADIUS: 185,
   /** Kaya dağılım yarıçapı */
-  ROCK_RADIUS: 85,
+  ROCK_RADIUS: 180,
   /** Texture tekrar sayısı */
-  TEXTURE_REPEAT: 40,
+  TEXTURE_REPEAT: 80,
+} as const;
+
+/** ===== BÖLGE SİSTEMİ ===== */
+export interface Region {
+  id: string;
+  name: string;
+  center: [number, number, number];
+  radius: number;
+  color: string;
+  icon: string;
+  description: string;
+  bonus: {
+    type: "gold_boost" | "salary_reduce" | "energy_boost" | "production_boost";
+    value: number;
+    label: string;
+  };
+}
+
+export const REGIONS: Region[] = [
+  {
+    id: "city",
+    name: "Ticaret Şehri",
+    center: [80, 0, -70],
+    radius: 35,
+    color: "#c4a35a",
+    icon: "🏙️",
+    description: "Ticaret yapabileceğin canlı şehir. Banka, market ve depolar var.",
+    bonus: { type: "gold_boost", value: 1.3, label: "+%30 Altın Geliri" },
+  },
+  {
+    id: "farm",
+    name: "Çiftlik Kasaba",
+    center: [-75, 0, 65],
+    radius: 30,
+    color: "#8B7355",
+    icon: "🌾",
+    description: "Verimli tarım arazileri. Hayvan çiftlikleri ve pazar yeri.",
+    bonus: { type: "salary_reduce", value: 0.8, label: "-%20 Çalışan Maaşı" },
+  },
+  {
+    id: "forest",
+    name: "Yoğun Orman",
+    center: [-60, 0, -60],
+    radius: 40,
+    color: "#1a4a12",
+    icon: "🌲",
+    description: "Doğal kaynakları bol yoğun orman bölgesi.",
+    bonus: { type: "energy_boost", value: 1.2, label: "+%20 Enerji Üretimi" },
+  },
+  {
+    id: "factory",
+    name: "Sanayi Bölgesi",
+    center: [70, 0, 70],
+    radius: 25,
+    color: "#5a5a6a",
+    icon: "🏭",
+    description: "Endüstriyel üretim bölgesi. Fabrikalar ve depolar.",
+    bonus: { type: "production_boost", value: 1.5, label: "+%50 Üretim Hızı" },
+  },
+];
+
+/** Bölge yakınlık kontrolü */
+export function getRegionAt(x: number, z: number): Region | null {
+  for (const region of REGIONS) {
+    const dx = x - region.center[0];
+    const dz = z - region.center[2];
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist <= region.radius) return region;
+  }
+  return null;
+}
+
+/** Bina konumuna göre bonus çarpanı hesapla */
+export function getRegionBonus(x: number, z: number): { goldMult: number; energyMult: number; salaryMult: number; prodMult: number } {
+  const region = getRegionAt(x, z);
+  const result = { goldMult: 1, energyMult: 1, salaryMult: 1, prodMult: 1 };
+  if (!region) return result;
+  switch (region.bonus.type) {
+    case "gold_boost": result.goldMult = region.bonus.value; break;
+    case "energy_boost": result.energyMult = region.bonus.value; break;
+    case "salary_reduce": result.salaryMult = region.bonus.value; break;
+    case "production_boost": result.prodMult = region.bonus.value; break;
+  }
+  return result;
+}
+
+/** Ticaret piyasa fiyatları */
+export const TRADE_CONFIG = {
+  /** Enerji birimi başına altın (temel fiyat) */
+  BASE_ENERGY_PRICE: 2,
+  /** Fiyat dalgalanma aralığı */
+  PRICE_VARIANCE: 0.5,
+  /** Banka faiz oranı (saniyede) */
+  BANK_INTEREST_RATE: 0.001,
+  /** Market buffs */
+  MARKET_ITEMS: [
+    { id: "speed_boost", name: "Hız Güçlendirme", cost: 500, icon: "⚡", description: "30sn tüm üretim %200", duration: 30, mult: 2 },
+    { id: "gold_magnet", name: "Altın Mıknatısı", cost: 800, icon: "🧲", description: "60sn altın üretimi %300", duration: 60, mult: 3 },
+    { id: "shield", name: "Koruma Kalkanı", cost: 1000, icon: "🛡️", description: "Negatif olayları 120sn engeller", duration: 120, mult: 1 },
+  ],
 } as const;
 
 /** Biome tanımları */
